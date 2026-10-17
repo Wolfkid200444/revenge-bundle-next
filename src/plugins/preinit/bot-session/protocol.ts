@@ -128,3 +128,88 @@ export function botVerification(check: Record<string, unknown>) {
         canChat: !check.missingVerificationRole,
     }
 }
+
+export function parseMembers(value: unknown) {
+    if (!Array.isArray(value)) throw new Error('Invalid member response')
+    return value.map(member => {
+        if (
+            !isRecord(member) ||
+            !isRecord(member.user) ||
+            typeof member.user.id !== 'string' ||
+            !Array.isArray(member.roles) ||
+            !member.roles.every(role => typeof role === 'string')
+        )
+            throw new Error('Invalid guild member')
+        return {
+            ...member,
+            user: { ...member.user, id: member.user.id },
+            roles: member.roles.filter(
+                (role): role is string => typeof role === 'string',
+            ),
+        }
+    })
+}
+export type BotMember = ReturnType<typeof parseMembers>[number]
+function bits(value: unknown) {
+    return typeof value === 'bigint'
+        ? value
+        : typeof value === 'string' && /^\d+$/.test(value)
+          ? BigInt(value)
+          : 0n
+}
+
+export function canViewChannel(
+    member: BotMember,
+    guild: Record<string, unknown>,
+    channel: Record<string, unknown>,
+) {
+    if (guild.owner_id === member.user.id) return true
+    const roles = Array.isArray(guild.roles) ? guild.roles.filter(isRecord) : []
+    let permissions = roles
+        .filter(
+            role =>
+                role.id === guild.id ||
+                (typeof role.id === 'string' && member.roles.includes(role.id)),
+        )
+        .reduce((permissions, role) => permissions | bits(role.permissions), 0n)
+    if (permissions & 8n) return true
+    const overwrites = isRecord(channel.permissionOverwrites)
+        ? Object.values(channel.permissionOverwrites).filter(isRecord)
+        : []
+    const apply = (items: Record<string, unknown>[]) => {
+        const denied = items.reduce((all, item) => all | bits(item.deny), 0n)
+        const allowed = items.reduce((all, item) => all | bits(item.allow), 0n)
+        permissions = (permissions & ~denied) | allowed
+    }
+    apply(overwrites.filter(item => item.id === guild.id))
+    apply(
+        overwrites.filter(
+            item =>
+                typeof item.id === 'string' && member.roles.includes(item.id),
+        ),
+    )
+    apply(overwrites.filter(item => item.id === member.user.id))
+    return (permissions & 1024n) !== 0n
+}
+
+export function memberListPayload(
+    guildId: string,
+    listId: string,
+    members: BotMember[],
+) {
+    const group = { id: 'unknown', count: members.length }
+    return {
+        guild_id: guildId,
+        id: listId,
+        member_count: members.length,
+        online_count: 0,
+        groups: [group],
+        ops: [
+            {
+                op: 'SYNC',
+                range: [0, members.length],
+                items: [{ group }, ...members.map(member => ({ member }))],
+            },
+        ],
+    }
+}

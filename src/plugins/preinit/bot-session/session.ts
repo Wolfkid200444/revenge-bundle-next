@@ -1,6 +1,7 @@
 import { onFluxEventDispatched } from '@revenge-mod/discord/flux'
 import { getModuleWithImportedPath } from '@revenge-mod/discord/utils/modules/finders'
 import { before, instead } from '@revenge-mod/patcher'
+import { installMemberList } from './members'
 import {
     botGatewayCommand,
     botGuild,
@@ -113,6 +114,13 @@ export function installBotSession(
             log('Bot user-verification composer gate patched')
         }),
     )
+    let receiveDispatch: ((data: unknown, event: string) => void) | undefined
+    const members = installMemberList(
+        cleanup,
+        () => currentToken?.() ?? null,
+        (data, event) => receiveDispatch?.(data, event),
+        log,
+    )
     cleanup(
         getModuleWithImportedPath<{ socket: Socket }>(
             'modules/gateway/GatewaySocketSingleton.tsx',
@@ -146,12 +154,16 @@ export function installBotSession(
                             event === 'GUILD_CREATE' &&
                             isRecord(data)
                         ) {
+                            members.rememberGuild(data)
                             log('Bot guild payload adapted')
                             return [botGuild(data), event, seq]
                         }
                         return [data, event, seq]
                     }),
                 )
+                receiveDispatch = (data, event) => {
+                    socket._handleDispatch(data, event, 0)
+                }
                 socketPatched = true
                 log('Native bot Gateway adapter ready')
             },
@@ -257,6 +269,7 @@ export function installBotSession(
             },
         ),
         onFluxEventDispatched('LOGOUT', payload => {
+            members.clear()
             connected = false
             for (const listener of listeners) listener(false)
             return payload
