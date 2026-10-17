@@ -1,0 +1,23 @@
+src/plugins/preinit/bot-session/protocol.test.ts
+  s_a3a2f53d8e5d45::t_556d6ec2aaea4a 5,80-94
+src/plugins/preinit/bot-session/protocol.ts
+  s_a3a2f53d8e5d45::t_13aa2f27a5942b 96-118
+src/plugins/preinit/bot-session/session.ts
+  s_a3a2f53d8e5d45::t_3f0314e0557a8a 6,117-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b06b4259173a59d2b42042152a49fa4faffa31e1",
+  "prompts": {},
+  "sessions": {
+    "s_a3a2f53d8e5d45": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a146e6-fd76-7e10-b998-706740683102",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Wolfkid200444 <32025746+Wolfkid200444@users.noreply.github.com>"
+    }
+  }
+}
