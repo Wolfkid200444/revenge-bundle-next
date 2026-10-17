@@ -1,8 +1,10 @@
+import { Dispatcher } from '@revenge-mod/discord/common/flux'
 import { registerInternalPlugin } from '@revenge-mod/plugins/_'
 import { useEffect, useRef, useState } from 'react'
 import {
     ActivityIndicator,
     AppRegistry,
+    AppState,
     KeyboardAvoidingView,
     Pressable,
     ScrollView,
@@ -36,7 +38,13 @@ function BotLoginScreen() {
     const retryAt = useRef(0)
     const request = useRef<AbortController | null>(null)
 
-    useEffect(() => () => request.current?.abort(), [])
+    useEffect(() => {
+        Dispatcher.dispatch({
+            type: 'APP_STATE_UPDATE',
+            state: AppState.currentState,
+        })
+        return () => request.current?.abort()
+    }, [])
 
     async function login() {
         if (request.current) return
