@@ -1,0 +1,19 @@
+plans/2026-10-16-native-bot-session-v1.md
+  s_a3a2f53d8e5d45::t_6c66a408e0d627 6-11,14-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6e5c3cc284a378df6403f0f92c5776152ed8bc55",
+  "prompts": {},
+  "sessions": {
+    "s_a3a2f53d8e5d45": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a146e6-fd76-7e10-b998-706740683102",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Wolfkid200444 <32025746+Wolfkid200444@users.noreply.github.com>"
+    }
+  }
+}
