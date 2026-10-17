@@ -1,0 +1,31 @@
+plans/2026-10-16-native-bot-session-v1.md
+  s_a3a2f53d8e5d45::t_49d71e50dc0aed 1-13
+src/plugins/preinit/bot-session/index.ts
+  s_a3a2f53d8e5d45::t_d9dd71259978c3 1-11
+src/plugins/preinit/bot-session/manifest.json
+  s_a3a2f53d8e5d45::t_e729e26c115d52 1-8
+src/plugins/preinit/bot-session/protocol.test.ts
+  s_a3a2f53d8e5d45::t_f6b872f91662f5 1-78
+src/plugins/preinit/bot-session/protocol.ts
+  s_a3a2f53d8e5d45::t_69ced4c715b235 1-95
+src/plugins/preinit/bot-session/session.ts
+  s_a3a2f53d8e5d45::t_e538a79cf18528 1-228
+src/plugins/start/bot-login/index.tsx
+  s_a3a2f53d8e5d45::t_c1c703d80fe0cd 7,15-20,23,27-45,51,58-64,82-92,103-114,168-169,172-174
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d27ea7818327f72fa52702dd145df1f77aa42405",
+  "prompts": {},
+  "sessions": {
+    "s_a3a2f53d8e5d45": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a146e6-fd76-7e10-b998-706740683102",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Wolfkid200444 <32025746+Wolfkid200444@users.noreply.github.com>"
+    }
+  }
+}
