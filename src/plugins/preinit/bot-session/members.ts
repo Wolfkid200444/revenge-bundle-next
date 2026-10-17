@@ -77,6 +77,18 @@ export function installMemberList(
                         context.listId,
                         cached.members,
                     )
+                else if (guilds.has(context.guildId))
+                    void load(context.guildId)
+                        .then(members => {
+                            if (members && !stopped)
+                                publish(
+                                    context.guildId,
+                                    context.channelId,
+                                    context.listId,
+                                    members,
+                                )
+                        })
+                        .catch(() => log('Initial bot member list load failed'))
             }
         }, 100)
     }
