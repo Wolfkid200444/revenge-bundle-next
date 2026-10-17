@@ -1,0 +1,27 @@
+plans/2026-10-16-bot-login-v1.md
+  s_a3a2f53d8e5d45::t_4392d230e7f506 1-10
+src/plugins/start/bot-login/api.test.ts
+  s_a3a2f53d8e5d45::t_e7fdf6a833f8a3 1-104
+src/plugins/start/bot-login/api.ts
+  s_a3a2f53d8e5d45::t_f6a807dcf24109 1-135
+src/plugins/start/bot-login/index.tsx
+  s_a3a2f53d8e5d45::t_2f728fb4b0ca8d 1-266
+src/plugins/start/bot-login/manifest.json
+  s_a3a2f53d8e5d45::t_46e95ca41e0d03 1-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "837006af733656ee300490cdc341306ae7751edf",
+  "prompts": {},
+  "sessions": {
+    "s_a3a2f53d8e5d45": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a146e6-fd76-7e10-b998-706740683102",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Wolfkid200444 <32025746+Wolfkid200444@users.noreply.github.com>"
+    }
+  }
+}
