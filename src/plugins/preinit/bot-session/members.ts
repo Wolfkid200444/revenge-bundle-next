@@ -158,6 +158,9 @@ export function installMemberList(
             if (isRecord(data) && typeof data.id === 'string')
                 guilds.set(data.id, data)
         },
+        resetLists() {
+            published.clear()
+        },
         clear() {
             cache.clear()
             published.clear()

@@ -259,6 +259,7 @@ export function installBotSession(
         onFluxEventDispatched<{ user?: unknown; auth?: unknown }>(
             'CONNECTION_OPEN',
             payload => {
+                members.resetLists()
                 if (hasBotToken() && isRecord(payload.user))
                     payload.user.bot = true
                 if (hasBotToken()) payload.auth = { authenticator_types: [] }
