@@ -1,0 +1,8 @@
+{
+  "id": "botclient.session",
+  "name": "Bot Session",
+  "description": "Adapts Discord's native session for bot accounts.",
+  "author": "Wolfkid200444",
+  "essential": true,
+  "enabledByDefault": true
+}

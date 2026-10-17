@@ -1,11 +1,10 @@
-import { Dispatcher } from '@revenge-mod/discord/common/flux'
 import { registerInternalPlugin } from '@revenge-mod/plugins/_'
 import { useEffect, useRef, useState } from 'react'
 import {
     ActivityIndicator,
     AppRegistry,
-    AppState,
     KeyboardAvoidingView,
+    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -13,37 +12,56 @@ import {
     TextInput,
     View,
 } from 'react-native'
+import {
+    connected,
+    hasBotToken,
+    loginNativeBot,
+    onConnectionChange,
+} from '../../preinit/bot-session/session'
 import { authenticateBot } from './api'
 import manifest from './manifest.json'
-import type { BotSession } from './api'
+import type { ComponentProps, ComponentType } from 'react'
 
 registerInternalPlugin(manifest, {
     start({ cleanup, logger }) {
-        for (const key of AppRegistry.getAppKeys()) {
-            if (key === 'LogBox') continue
-            const original = AppRegistry.getRunnable(key)
-            if (!original) continue
-            AppRegistry.registerComponent(key, () => BotLoginScreen)
-            cleanup(() => AppRegistry.registerRunnable(key, original))
-        }
-        logger.log('Bot login screen ready')
+        AppRegistry.setComponentProviderInstrumentationHook(provider => {
+            const Root = provider()
+            return function BotClientRoot(
+                props: ComponentProps<ComponentType>,
+            ) {
+                return (
+                    <>
+                        <Root {...props} />
+                        <BotLoginScreen />
+                    </>
+                )
+            }
+        })
+        cleanup(() =>
+            AppRegistry.setComponentProviderInstrumentationHook(provider =>
+                provider(),
+            ),
+        )
+        logger.log('Original Discord root preserved with bot token entry')
     },
 })
 
 function BotLoginScreen() {
     const [token, setToken] = useState('')
-    const [session, setSession] = useState<BotSession | null>(null)
+    const [visible, setVisible] = useState(!connected && !hasBotToken())
     const [pending, setPending] = useState(false)
     const [error, setError] = useState('')
     const retryAt = useRef(0)
     const request = useRef<AbortController | null>(null)
 
     useEffect(() => {
-        Dispatcher.dispatch({
-            type: 'APP_STATE_UPDATE',
-            state: AppState.currentState,
-        })
-        return () => request.current?.abort()
+        const unsubscribe = onConnectionChange(connected =>
+            setVisible(!connected),
+        )
+        return () => {
+            unsubscribe()
+            request.current?.abort()
+        }
     }, [])
 
     async function login() {
@@ -61,8 +79,17 @@ function BotLoginScreen() {
         const result = await authenticateBot(token, fetch, controller.signal)
         if (!controller.signal.aborted) {
             if (result.kind === 'authenticated') {
-                setToken('')
-                setSession(result.session)
+                try {
+                    await loginNativeBot(result.session.token)
+                    setToken('')
+                    setVisible(false)
+                } catch (error) {
+                    setError(
+                        error instanceof Error
+                            ? error.message
+                            : 'Discord could not start the bot session.',
+                    )
+                }
             } else {
                 setError(result.message)
                 retryAt.current = Date.now() + result.retryAfterMs
@@ -73,57 +100,18 @@ function BotLoginScreen() {
     }
 
     return (
-        <KeyboardAvoidingView style={styles.root} behavior="height">
-            <ScrollView
-                contentContainerStyle={styles.content}
-                keyboardShouldPersistTaps="handled"
-            >
-                <Text style={styles.brand}>BotClient</Text>
-                <Text style={styles.subtitle}>Your bot, on Android.</Text>
-                {session ? (
-                    <>
-                        <View style={styles.card}>
-                            <Text style={styles.badge}>BOT ACCOUNT</Text>
-                            <Text style={styles.heading}>
-                                {session.user.username}
-                            </Text>
-                            <Text style={styles.muted}>
-                                Bot ID: {session.user.id}
-                            </Text>
-                            <Text style={styles.success}>
-                                Authenticated with Discord
-                            </Text>
-                        </View>
-                        <Text style={styles.heading}>Servers</Text>
-                        {session.guilds.length === 0 && (
-                            <Text style={styles.muted}>
-                                This bot has not joined any servers yet.
-                            </Text>
-                        )}
-                        {session.guilds.map(guild => (
-                            <View key={guild.id} style={styles.server}>
-                                <Text style={styles.serverName}>
-                                    {guild.name}
-                                </Text>
-                            </View>
-                        ))}
-                        {session.guilds.length === 200 && (
-                            <Text style={styles.muted}>
-                                Showing the first 200 servers.
-                            </Text>
-                        )}
-                        <Text style={styles.note}>
-                            Chat integration is still in development.
-                        </Text>
-                        <Pressable
-                            accessibilityRole="button"
-                            style={styles.secondary}
-                            onPress={() => setSession(null)}
-                        >
-                            <Text style={styles.buttonText}>Log out</Text>
-                        </Pressable>
-                    </>
-                ) : (
+        <Modal
+            visible={visible}
+            animationType="fade"
+            onRequestClose={() => setVisible(false)}
+        >
+            <KeyboardAvoidingView style={styles.root} behavior="height">
+                <ScrollView
+                    contentContainerStyle={styles.content}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    <Text style={styles.brand}>BotClient</Text>
+                    <Text style={styles.subtitle}>Your bot, on Android.</Text>
                     <View style={styles.card}>
                         <Text style={styles.heading}>Log in as your bot</Text>
                         <Text style={styles.description}>
@@ -177,14 +165,13 @@ function BotLoginScreen() {
                             )}
                         </Pressable>
                         <Text style={styles.note}>
-                            Your token goes directly to Discord. It stays in
-                            memory and is cleared when you log out or close the
-                            app.
+                            Your token goes directly to Discord. Discord stores
+                            the session on this device until you log out.
                         </Text>
                     </View>
-                )}
-            </ScrollView>
-        </KeyboardAvoidingView>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </Modal>
     )
 }
 
