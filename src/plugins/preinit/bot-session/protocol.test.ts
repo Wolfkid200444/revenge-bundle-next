@@ -4,6 +4,7 @@ import {
     botGatewayCommand,
     botGuild,
     botReady,
+    botVerification,
     isUserOnlyRoute,
 } from './protocol'
 
@@ -91,4 +92,28 @@ it('adapts flat bot guilds to native full-sync guild payloads', () => {
     expect(guild.threads).toEqual([])
     expect(guild.voice_states).toEqual([])
     expect(guild.data_mode).toBe('full')
+})
+
+it('exempts bots from user account verification while retaining verification role checks', () => {
+    const check = {
+        notClaimed: true,
+        notEmailVerified: true,
+        notPhoneVerified: true,
+        newAccount: true,
+        newMember: true,
+        canChat: false,
+        missingVerificationRole: false,
+    }
+    expect(botVerification(check)).toMatchObject({
+        notClaimed: false,
+        notEmailVerified: false,
+        notPhoneVerified: false,
+        newAccount: false,
+        newMember: false,
+        canChat: true,
+    })
+    expect(
+        botVerification({ ...check, missingVerificationRole: true }).canChat,
+    ).toBe(false)
+    expect(check.notClaimed).toBe(true)
 })

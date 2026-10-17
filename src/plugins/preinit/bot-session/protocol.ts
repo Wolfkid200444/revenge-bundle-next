@@ -116,3 +116,15 @@ export function botGuild(data: Record<string, unknown>) {
         properties: isRecord(data.properties) ? data.properties : { ...data },
     }
 }
+
+export function botVerification(check: Record<string, unknown>) {
+    return {
+        ...check,
+        notClaimed: false,
+        notEmailVerified: false,
+        notPhoneVerified: false,
+        newAccount: false,
+        newMember: false,
+        canChat: !check.missingVerificationRole,
+    }
+}

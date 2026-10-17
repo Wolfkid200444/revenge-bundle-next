@@ -5,6 +5,7 @@ import {
     botGatewayCommand,
     botGuild,
     botReady,
+    botVerification,
     isRecord,
     isUserOnlyRoute,
 } from './protocol'
@@ -95,6 +96,22 @@ export function installBotSession(
                 }
             },
         ),
+    )
+    cleanup(
+        getModuleWithImportedPath<{
+            default: { getCheck(guildId: string): unknown }
+        }>('stores/GuildVerificationStore.tsx', ({ default: store }) => {
+            if (!store || typeof store.getCheck !== 'function') return
+            cleanup(
+                instead(store, 'getCheck', (args, original) => {
+                    const check = original(...args)
+                    return hasBotToken() && isRecord(check)
+                        ? botVerification(check)
+                        : check
+                }),
+            )
+            log('Bot user-verification composer gate patched')
+        }),
     )
     cleanup(
         getModuleWithImportedPath<{ socket: Socket }>(
