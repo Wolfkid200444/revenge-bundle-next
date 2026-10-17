@@ -1,0 +1,23 @@
+plans/2026-10-17-bot-member-list-v1.md
+  s_a3a2f53d8e5d45::t_77fcdfb5be43d7 6-9,13-15
+src/plugins/preinit/bot-session/members.ts
+  s_a3a2f53d8e5d45::t_769e2c5496f64a 161-163
+src/plugins/preinit/bot-session/session.ts
+  s_a3a2f53d8e5d45::t_ca4d93dfe86dcc 262
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e6f8e17ddb740b757cd2cdd387d6e4e30aa351b1",
+  "prompts": {},
+  "sessions": {
+    "s_a3a2f53d8e5d45": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a146e6-fd76-7e10-b998-706740683102",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Wolfkid200444 <32025746+Wolfkid200444@users.noreply.github.com>"
+    }
+  }
+}
