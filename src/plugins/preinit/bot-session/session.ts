@@ -9,6 +9,10 @@ import {
     isUserOnlyRoute,
 } from './protocol'
 
+function hasTotpStore(value: unknown): value is { hasTOTPEnabled(): boolean } {
+    return isRecord(value) && typeof value.hasTOTPEnabled === 'function'
+}
+
 type Cleanup = (...callbacks: (() => void)[]) => void
 interface Socket {
     handleIdentify(): unknown
@@ -79,6 +83,12 @@ export function installBotSession(
                     return
                 const store = exports.default
                 const getToken = exports.default.getToken
+                if (hasTotpStore(store))
+                    cleanup(
+                        instead(store, 'hasTOTPEnabled', (args, original) =>
+                            hasBotToken() ? false : original(...args),
+                        ),
+                    )
                 currentToken = () => {
                     const token = getToken.call(store)
                     return typeof token === 'string' ? token : null
@@ -217,11 +227,12 @@ export function installBotSession(
         ),
     )
     cleanup(
-        onFluxEventDispatched<{ user?: unknown }>(
+        onFluxEventDispatched<{ user?: unknown; auth?: unknown }>(
             'CONNECTION_OPEN',
             payload => {
                 if (hasBotToken() && isRecord(payload.user))
                     payload.user.bot = true
+                if (hasBotToken()) payload.auth = { authenticator_types: [] }
                 connected = true
                 for (const listener of listeners) listener(true)
                 log('Discord native connection opened')
