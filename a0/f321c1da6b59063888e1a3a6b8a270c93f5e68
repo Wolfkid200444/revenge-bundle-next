@@ -1,0 +1,19 @@
+plans/2026-10-17-bot-presence-v1.md
+  s_a3a2f53d8e5d45::t_56ede7b54e92d6 3-6,9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a0f321c1da6b59063888e1a3a6b8a270c93f5e68",
+  "prompts": {},
+  "sessions": {
+    "s_a3a2f53d8e5d45": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a146e6-fd76-7e10-b998-706740683102",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Wolfkid200444 <32025746+Wolfkid200444@users.noreply.github.com>"
+    }
+  }
+}
