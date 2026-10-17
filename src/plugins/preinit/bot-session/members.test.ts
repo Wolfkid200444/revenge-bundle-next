@@ -61,3 +61,28 @@ it('builds native member list SYNC rows without inventing presence status', () =
     expect(payload.ops[0]?.items[1]).toEqual({ member: members[0] })
     expect(payload.member_count).toBe(1)
 })
+
+it('groups native members by real presence and retains idle and DND states', () => {
+    const members = parseMembers([
+        { user: { id: '1' }, roles: [] },
+        { user: { id: '2' }, roles: [] },
+        { user: { id: '3' }, roles: [] },
+    ])
+    const presences = new Map([
+        ['1', { user: { id: '1' }, status: 'idle', activities: [] }],
+        ['2', { user: { id: '2' }, status: 'dnd', activities: [] }],
+    ])
+    const payload = memberListPayload('4', 'everyone', members, presences)
+    expect(payload.online_count).toBe(2)
+    expect(payload.groups).toEqual([
+        { id: 'online', count: 2 },
+        { id: 'offline', count: 1 },
+    ])
+    expect(payload.ops[0]?.range).toEqual([0, 4])
+    expect(payload.ops[0]?.items[1]).toMatchObject({
+        member: { presence: { status: 'idle' } },
+    })
+    expect(payload.ops[0]?.items[4]).toMatchObject({
+        member: { presence: { status: 'offline' } },
+    })
+})

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+    allowsPresence,
     BotIntents,
     botGatewayCommand,
     botGuild,
@@ -116,4 +117,24 @@ it('exempts bots from user account verification while retaining verification rol
         botVerification({ ...check, missingVerificationRole: true }).canChat,
     ).toBe(false)
     expect(check.notClaimed).toBe(true)
+})
+
+it('requests presence only when explicitly enabled for this Identify', () => {
+    const command = botGatewayCommand(2, { token: 'Bot test-token' }, true)
+    expect(command).toMatchObject([2, { intents: BotIntents | 256 }])
+    expect(botGatewayCommand(2, { token: 'Bot test-token' })).toMatchObject([
+        2,
+        { intents: BotIntents },
+    ])
+})
+
+it('detects approved and limited presence capability flags safely', () => {
+    expect(allowsPresence({ flags: 1 << 12 })).toBe(true)
+    expect(allowsPresence({ flags: 1 << 13 })).toBe(true)
+    expect(
+        allowsPresence({ flags_new: String((1n << 40n) | (1n << 13n)) }),
+    ).toBe(true)
+    expect(allowsPresence({ flags: 1 << 15 })).toBe(false)
+    expect(allowsPresence({ flags: -1 })).toBe(false)
+    expect(allowsPresence(null)).toBe(false)
 })

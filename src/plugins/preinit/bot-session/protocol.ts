@@ -8,6 +8,7 @@ export const BotIntents = 1 | 512 | 1024 | 4096 | 8192
 export function botGatewayCommand(
     op: number,
     data: unknown,
+    presenceEnabled = false,
 ): [number, unknown] | null {
     if (op === 2) {
         if (!isRecord(data) || typeof data.token !== 'string') return null
@@ -15,7 +16,7 @@ export function botGatewayCommand(
             2,
             {
                 token: data.token.replace(/^Bot\s+/i, ''),
-                intents: BotIntents,
+                intents: BotIntents | (presenceEnabled ? 256 : 0),
                 properties: {
                     os: 'android',
                     browser: 'BotClient',
@@ -192,24 +193,73 @@ export function canViewChannel(
     return (permissions & 1024n) !== 0n
 }
 
+export function allowsPresence(application: unknown) {
+    if (!isRecord(application)) return false
+    const flags = bits(
+        application.flags_new ??
+            (typeof application.flags === 'number' &&
+            Number.isSafeInteger(application.flags) &&
+            application.flags >= 0
+                ? String(application.flags)
+                : application.flags),
+    )
+    return (flags & ((1n << 12n) | (1n << 13n))) !== 0n
+}
+
 export function memberListPayload(
     guildId: string,
     listId: string,
     members: BotMember[],
+    presences?: ReadonlyMap<string, Record<string, unknown>>,
 ) {
-    const group = { id: 'unknown', count: members.length }
+    const groups: { id: string; count: number }[] = []
+    const items: (
+        | { group: { id: string; count: number } }
+        | { member: BotMember & { presence?: Record<string, unknown> } }
+    )[] = []
+    const online = presences
+        ? members.filter(member =>
+              ['online', 'idle', 'dnd'].includes(
+                  String(presences.get(member.user.id)?.status),
+              ),
+          )
+        : []
+    const onlineIds = new Set(online.map(member => member.user.id))
+    const offline = members.filter(member => !onlineIds.has(member.user.id))
+    for (const [id, list] of presences
+        ? ([
+              ['online', online],
+              ['offline', offline],
+          ] as const)
+        : ([['unknown', members]] as const)) {
+        if (!list.length) continue
+        const group = { id, count: list.length }
+        groups.push(group)
+        items.push({ group })
+        for (const member of list)
+            items.push({
+                member: presences
+                    ? {
+                          ...member,
+                          presence: {
+                              user: member.user,
+                              status: 'offline',
+                              activities: [],
+                              client_status: {},
+                              ...presences.get(member.user.id),
+                          },
+                      }
+                    : member,
+            })
+    }
     return {
         guild_id: guildId,
         id: listId,
         member_count: members.length,
-        online_count: 0,
-        groups: [group],
-        ops: [
-            {
-                op: 'SYNC',
-                range: [0, members.length],
-                items: [{ group }, ...members.map(member => ({ member }))],
-            },
-        ],
+        online_count: online.length,
+        groups,
+        ops: items.length
+            ? [{ op: 'SYNC', range: [0, items.length - 1], items }]
+            : [{ op: 'SYNC', range: [0, 0], items: [] }],
     }
 }

@@ -19,10 +19,72 @@ export function installMemberList(
     const pending = new Map<string, Promise<Member[]>>()
     const cooldown = new Map<string, number>()
     const published = new Map<string, Member[]>()
+    const presences = new Map<string, Map<string, Record<string, unknown>>>()
+    const lists = new Map<
+        string,
+        { guildId: string; channelId: string; listId: string }
+    >()
+    let presenceEnabled = false
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined
+    function publish(
+        guildId: string,
+        channelId: string,
+        listId: string,
+        members: Member[],
+    ) {
+        const guild = guilds.get(guildId)
+        const channel = getChannel?.(channelId)
+        if (!guild || !isRecord(channel) || stopped) return
+        const visible = members.filter(member =>
+            canViewChannel(member, guild, channel),
+        )
+        dispatch(
+            memberListPayload(
+                guildId,
+                listId,
+                visible,
+                presenceEnabled
+                    ? (presences.get(guildId) ?? new Map())
+                    : undefined,
+            ),
+            'GUILD_MEMBER_LIST_UPDATE',
+        )
+    }
+    function rememberPresence(data: unknown) {
+        if (
+            !isRecord(data) ||
+            typeof data.guild_id !== 'string' ||
+            !isRecord(data.user) ||
+            typeof data.user.id !== 'string' ||
+            !['online', 'idle', 'dnd', 'offline', 'invisible'].includes(
+                String(data.status),
+            )
+        )
+            return
+        let guildPresences = presences.get(data.guild_id)
+        if (!guildPresences)
+            presences.set(data.guild_id, (guildPresences = new Map()))
+        guildPresences.set(data.user.id, data)
+        if (refreshTimer !== undefined) return
+        refreshTimer = setTimeout(() => {
+            refreshTimer = undefined
+            for (const context of lists.values()) {
+                const cached = cache.get(context.guildId)
+                if (cached)
+                    publish(
+                        context.guildId,
+                        context.channelId,
+                        context.listId,
+                        cached.members,
+                    )
+            }
+        }, 100)
+    }
     let getChannel: ((id: string) => unknown) | undefined
     let stopped = false
     cleanup(() => {
         stopped = true
+        if (refreshTimer !== undefined) clearTimeout(refreshTimer)
         cache.clear()
         guilds.clear()
         published.clear()
@@ -115,6 +177,7 @@ export function installMemberList(
                         return result
                     const listId = result.listId.slice(guildId.length + 1)
                     const key = `${guildId}:${listId}`
+                    lists.set(key, { guildId, channelId, listId })
                     const guild = guilds.get(guildId)
                     const channel = getChannel?.(channelId)
                     if (!guild || !isRecord(channel)) return result
@@ -127,13 +190,7 @@ export function installMemberList(
                             )
                                 return
                             published.set(key, members)
-                            const visible = members.filter(member =>
-                                canViewChannel(member, guild, channel),
-                            )
-                            dispatch(
-                                memberListPayload(guildId, listId, visible),
-                                'GUILD_MEMBER_LIST_UPDATE',
-                            )
+                            publish(guildId, channelId, listId, members)
                         })
                         .catch(() => {
                             cooldown.set(
@@ -155,8 +212,21 @@ export function installMemberList(
     )
     return {
         rememberGuild(data: unknown) {
-            if (isRecord(data) && typeof data.id === 'string')
+            if (isRecord(data) && typeof data.id === 'string') {
                 guilds.set(data.id, data)
+                if (Array.isArray(data.presences))
+                    for (const presence of data.presences) {
+                        if (isRecord(presence))
+                            rememberPresence({ ...presence, guild_id: data.id })
+                    }
+                log(
+                    `Initial bot presences received: ${presences.get(data.id)?.size ?? 0}`,
+                )
+            }
+        },
+        rememberPresence,
+        setPresenceEnabled(enabled: boolean) {
+            presenceEnabled = enabled
         },
         resetLists() {
             published.clear()
@@ -166,6 +236,8 @@ export function installMemberList(
             published.clear()
             cooldown.clear()
             guilds.clear()
+            presences.clear()
+            lists.clear()
         },
     }
 }

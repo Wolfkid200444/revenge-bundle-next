@@ -3,6 +3,7 @@ import { getModuleWithImportedPath } from '@revenge-mod/discord/utils/modules/fi
 import { before, instead } from '@revenge-mod/patcher'
 import { installMemberList } from './members'
 import {
+    allowsPresence,
     botGatewayCommand,
     botGuild,
     botReady,
@@ -121,6 +122,33 @@ export function installBotSession(
         (data, event) => receiveDispatch?.(data, event),
         log,
     )
+    let presenceToken: string | undefined
+    let presenceCapability: Promise<boolean> | undefined
+    function checkPresence(token: string) {
+        if (presenceToken === token && presenceCapability)
+            return presenceCapability
+        presenceToken = token
+        presenceCapability = (async () => {
+            const controller = new AbortController()
+            const timer = setTimeout(() => controller.abort(), 5000)
+            try {
+                const response = await fetch(
+                    'https://discord.com/api/v10/applications/@me',
+                    {
+                        headers: { Authorization: token },
+                        signal: controller.signal,
+                    },
+                )
+                if (!response.ok) return false
+                return allowsPresence(await response.json())
+            } catch {
+                return false
+            } finally {
+                clearTimeout(timer)
+            }
+        })()
+        return presenceCapability
+    }
     cleanup(
         getModuleWithImportedPath<{ socket: Socket }>(
             'modules/gateway/GatewaySocketSingleton.tsx',
@@ -134,6 +162,32 @@ export function installBotSession(
                 cleanup(
                     instead(socket, 'send', ([op, data, ...rest], original) => {
                         if (!hasBotToken()) return original(op, data, ...rest)
+                        if (op === 2)
+                            return checkPresence(currentToken?.() ?? '').then(
+                                enabled => {
+                                    if (
+                                        !hasBotToken() ||
+                                        !isRecord(data) ||
+                                        data.token !== currentToken?.()
+                                    )
+                                        return
+                                    members.setPresenceEnabled(enabled)
+                                    log(
+                                        `Bot presence intent enabled: ${enabled}`,
+                                    )
+                                    const command = botGatewayCommand(
+                                        op,
+                                        data,
+                                        enabled,
+                                    )
+                                    if (command)
+                                        return original(
+                                            command[0],
+                                            command[1],
+                                            ...rest,
+                                        )
+                                },
+                            )
                         const command = botGatewayCommand(op, data)
                         if (command)
                             return original(command[0], command[1], ...rest)
@@ -158,6 +212,8 @@ export function installBotSession(
                             log('Bot guild payload adapted')
                             return [botGuild(data), event, seq]
                         }
+                        if (hasBotToken() && event === 'PRESENCE_UPDATE')
+                            members.rememberPresence(data)
                         return [data, event, seq]
                     }),
                 )
