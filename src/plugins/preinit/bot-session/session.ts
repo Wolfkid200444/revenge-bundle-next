@@ -3,6 +3,7 @@ import { getModuleWithImportedPath } from '@revenge-mod/discord/utils/modules/fi
 import { before, instead } from '@revenge-mod/patcher'
 import {
     botGatewayCommand,
+    botGuild,
     botReady,
     isRecord,
     isUserOnlyRoute,
@@ -112,6 +113,14 @@ export function installBotSession(
                         ) {
                             log('Bot Gateway READY received')
                             return [botReady(data), event, seq]
+                        }
+                        if (
+                            hasBotToken() &&
+                            event === 'GUILD_CREATE' &&
+                            isRecord(data)
+                        ) {
+                            log('Bot guild payload adapted')
+                            return [botGuild(data), event, seq]
                         }
                         return [data, event, seq]
                     }),

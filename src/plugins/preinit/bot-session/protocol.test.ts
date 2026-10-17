@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
     BotIntents,
     botGatewayCommand,
+    botGuild,
     botReady,
     isUserOnlyRoute,
 } from './protocol'
@@ -75,4 +76,19 @@ describe('native bot protocol', () => {
         ])
             expect(isUserOnlyRoute(url)).toBe(false)
     })
+})
+
+it('adapts flat bot guilds to native full-sync guild payloads', () => {
+    const channels = [{ id: '789', guild_id: '456', type: 0 }]
+    const guild = botGuild({
+        id: '456',
+        name: 'Test',
+        channels,
+        roles: [{ id: '456', permissions: '1024' }],
+    })
+    expect(guild.properties.name).toBe('Test')
+    expect(guild.channels).toBe(channels)
+    expect(guild.threads).toEqual([])
+    expect(guild.voice_states).toEqual([])
+    expect(guild.data_mode).toBe('full')
 })

@@ -93,3 +93,26 @@ export function isUserOnlyRoute(url: string) {
         /^\/guilds\/[^/]+\/members\/@me\/profile$/.test(path)
     )
 }
+
+export function botGuild(data: Record<string, unknown>) {
+    return {
+        data_mode: 'full',
+        channels: [],
+        threads: [],
+        roles: [],
+        members: [],
+        presences: [],
+        voice_states: [],
+        emojis: [],
+        stickers: [],
+        stage_instances: [],
+        guild_scheduled_events: [],
+        activity_instances: [],
+        experiments: [],
+        last_messages: [],
+        version: 0,
+        has_threads_subscription: false,
+        ...data,
+        properties: isRecord(data.properties) ? data.properties : { ...data },
+    }
+}
